@@ -388,3 +388,61 @@ function checkLoginStatus() {
         localStorage.setItem('lastDailyLogin', today);
     }
 }
+// Adicionar esta função ao main.js
+
+function loadInitialData() {
+    const initialSongs = [
+        // Dados reais que você vai fornecer
+        // Formato:
+        // {
+        //     id: 1,
+        //     name: "Nome da Música",
+        //     album: "Nome do Álbum",
+        //     artist: "Selena Gomez" ou "Selena Gomez & The Scene",
+        //     totalStreams: 123456789,
+        //     dailyStreams: 12345,
+        //     goal: 200000000,
+        //     dailyGoal: 150000
+        // },
+        // ... mais músicas
+    ];
+    
+    // Verificar se já existem dados
+    const existingSongs = MusicStorage.getSongs();
+    if (existingSongs.length === 0 || existingSongs.length === 1) {
+        // Carregar dados iniciais
+        localStorage.setItem('selenaSongs', JSON.stringify(initialSongs));
+        MusicStorage.updateAlbumStats(initialSongs);
+        MusicStorage.updateArtistStats(initialSongs);
+        
+        // Inicializar dados da meta
+        if (!localStorage.getItem('goalData')) {
+            const totalStreams = initialSongs.reduce((sum, song) => sum + song.totalStreams, 0);
+            localStorage.setItem('goalData', JSON.stringify({
+                currentGoal: 1000000000, // 1 bilhão como meta inicial
+                currentProgress: totalStreams
+            }));
+        }
+        
+        // Inicializar votação
+        if (!localStorage.getItem('votingOptions')) {
+            const votingOptions = [
+                { id: 1, name: "A Year Without Rain", votes: 0 },
+                { id: 2, name: "Bluest Flame", votes: 0 },
+                { id: 3, name: "Only You", votes: 0 },
+                { id: 4, name: "Anxiety", votes: 0 }
+            ];
+            localStorage.setItem('votingOptions', JSON.stringify(votingOptions));
+        }
+        
+        // Inicializar playlist
+        if (!localStorage.getItem('spotifyPlaylist')) {
+            localStorage.setItem('spotifyPlaylist', 'https://open.spotify.com/playlist/37i9dQZF1DX4PP3DA4J0N8');
+        }
+        
+        console.log('Dados iniciais carregados com sucesso!');
+    }
+}
+
+// Chamar esta função quando você tiver os dados reais
+// loadInitialData();
