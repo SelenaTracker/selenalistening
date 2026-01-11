@@ -1,159 +1,170 @@
-// Sistema Principal - Funções Globais
+// Lógica específica da página Home
 
-// Inicialização do site
 document.addEventListener('DOMContentLoaded', function() {
-    initNavigation();
-    loadUserData();
-    updateAllStats();
-    checkLoginStatus();
+    if (document.getElementById('albumsGrid')) {
+        updateTopAlbums();
+        updateFocusOfTheDay();
+        updateRecentGoals();
+        updateUserRanking();
+    }
 });
 
-// Sistema de Navegação
-function initNavigation() {
-    const hamburger = document.querySelector('.hamburger');
-    const navMenu = document.querySelector('.nav-menu');
+// Atualizar top álbuns
+function updateTopAlbums() {
+    const albumsGrid = document.getElementById('albumsGrid');
+    if (!albumsGrid) return;
     
-    if (hamburger && navMenu) {
-        hamburger.addEventListener('click', () => {
-            navMenu.classList.toggle('active');
-            hamburger.innerHTML = navMenu.classList.contains('active') 
-                ? '<i class="fas fa-times"></i>' 
-                : '<i class="fas fa-bars"></i>';
-        });
-    }
+    const albums = JSON.parse(localStorage.getItem('selenaAlbums') || '{}');
     
-    // Fechar menu ao clicar em link
-    document.querySelectorAll('.nav-menu a').forEach(link => {
-        link.addEventListener('click', () => {
-            navMenu.classList.remove('active');
-            hamburger.innerHTML = '<i class="fas fa-bars"></i>';
-        });
-    });
-}
-
-// Sistema de LocalStorage para Músicas
-class MusicStorage {
-    static getSongs() {
-        const songs = localStorage.getItem('selenaSongs');
-        return songs ? JSON.parse(songs) : this.getDefaultSongs();
-    }
-    
-    static saveSongs(songs) {
-        localStorage.setItem('selenaSongs', JSON.stringify(songs));
-        this.updateAlbumStats(songs);
-        this.updateArtistStats(songs);
-    }
-    
-    static getDefaultSongs() {
-        // Dados iniciais serão substituídos pelos dados reais que você enviar
-        return [
-            {
-                id: 1,
-                name: "Lose You To Love Me",
-                album: "Rare Deluxe",
-                artist: "Selena Gomez",
-                totalStreams: 198951352,
-                dailyStreams: 125000,
-                goal: 200000000,
-                dailyGoal: 150000
-            },
-            // Mais músicas serão adicionadas aqui
-        ];
-    }
-    
-    static updateAlbumStats(songs) {
-        const albums = {};
-        songs.forEach(song => {
-            if (!albums[song.album]) {
-                albums[song.album] = {
-                    totalStreams: 0,
-                    dailyStreams: 0,
-                    songs: []
-                };
-            }
-            albums[song.album].totalStreams += song.totalStreams;
-            albums[song.album].dailyStreams += song.dailyStreams;
-            albums[song.album].songs.push(song.name);
-        });
-        localStorage.setItem('selenaAlbums', JSON.stringify(albums));
-    }
-    
-    static updateArtistStats(songs) {
-        const artists = {
-            "Selena Gomez": { totalStreams: 0, dailyStreams: 0 },
-            "Selena Gomez & The Scene": { totalStreams: 0, dailyStreams: 0 }
-        };
-        
-        songs.forEach(song => {
-            if (artists[song.artist]) {
-                artists[song.artist].totalStreams += song.totalStreams;
-                artists[song.artist].dailyStreams += song.dailyStreams;
-            }
-        });
-        
-        localStorage.setItem('selenaArtists', JSON.stringify(artists));
-    }
-}
-
-// Sistema de Metas Inteligentes
-class GoalSystem {
-    static levels = [
-        { minDaily: 400000, increment: 5000000, name: "Nível Máximo", color: "#FF4081" },
-        { minDaily: 200000, increment: 4000000, name: "Nível Alto", color: "#8A2BE2" },
-        { minDaily: 100000, increment: 2000000, name: "Nível Médio", color: "#4A00E0" },
-        { minDaily: 30000, increment: 1000000, name: "Nível Básico", color: "#00B4D8" },
-        { minDaily: 11000, increment: 200000, name: "Nível Iniciante", color: "#90BE6D" },
-        { minDaily: 0, increment: 100000, name: "Nível Manutenção", color: "#F9C74F" }
+    // Álbuns principais de Selena Gomez
+    const mainAlbums = [
+        { name: "Revival", icon: "fas fa-heart" },
+        { name: "Rare Deluxe", icon: "fas fa-gem" },
+        { name: "A Year Without Rain", icon: "fas fa-cloud" },
+        { name: "Revelación", icon: "fas fa-fire" },
+        { name: "I Said I Love You First...And You Said It Back", icon: "fas fa-comment-heart" },
+        { name: "When The Sun Goes Down", icon: "fas fa-sun" },
+        { name: "For You", icon: "fas fa-user-heart" },
+        { name: "Kiss & Tell", icon: "fas fa-kiss-wink-heart" }
     ];
     
-    static getCurrentLevel(dailyStreams) {
-        return this.levels.find(level => dailyStreams >= level.minDaily) || this.levels[this.levels.length - 1];
-    }
-    
-    static calculateNextGoal(currentGoal, dailyStreams) {
-        const level = this.getCurrentLevel(dailyStreams);
-        return currentGoal + level.increment;
-    }
-    
-    static getProgress(current, goal) {
-        return Math.min(Math.round((current / goal) * 100), 100);
-    }
+    albumsGrid.innerHTML = mainAlbums.map(album => {
+        const albumData = albums[album.name] || { totalStreams: 0, dailyStreams: 0, songs: [] };
+        
+        return `
+            <div class="album-card fade-in">
+                <div class="album-header">
+                    <div class="album-icon">
+                        <i class="${album.icon}"></i>
+                    </div>
+                    <h3>${album.name}</h3>
+                </div>
+                <div class="album-stats">
+                    <div class="album-stat">
+                        <span>${formatNumber(albumData.totalStreams)}</span>
+                        <small>Total</small>
+                    </div>
+                    <div class="album-stat">
+                        <span>${formatNumber(albumData.dailyStreams)}</span>
+                        <small>Hoje</small>
+                    </div>
+                </div>
+                <p class="album-songs">
+                    <small>${albumData.songs ? albumData.songs.length : 0} músicas</small>
+                </p>
+            </div>
+        `;
+    }).join('');
 }
 
-// Atualizar todas as estatísticas
-function updateAllStats() {
+// Atualizar foco do dia
+function updateFocusOfTheDay() {
+    const votingResult = JSON.parse(localStorage.getItem('votingResult') || '{"winner": "A Year Without Rain", "votes": 1}');
+    
     const songs = MusicStorage.getSongs();
-    const artists = JSON.parse(localStorage.getItem('selenaArtists') || '{}');
+    const focusSong = songs.find(song => song.name === votingResult.winner) || songs[0];
     
-    // Atualizar totais
-    const dailyTotal = songs.reduce((sum, song) => sum + song.dailyStreams, 0);
-    const totalStreams = songs.reduce((sum, song) => sum + song.totalStreams, 0);
+    // Atualizar elementos da página
+    const focusSongElem = document.getElementById('focusSong');
+    const focusStreamsElem = document.getElementById('focusStreams');
+    const focusGoalElem = document.getElementById('focusGoal');
+    const focusNeededElem = document.getElementById('focusNeeded');
     
-    document.getElementById('dailyTotal')?.textContent = this.formatNumber(dailyTotal);
-    document.getElementById('totalStreams')?.textContent = this.formatNumber(totalStreams);
+    if (focusSongElem) focusSongElem.textContent = focusSong.name;
+    if (focusStreamsElem) focusStreamsElem.textContent = formatNumber(focusSong.dailyStreams);
+    if (focusGoalElem) focusGoalElem.textContent = formatNumber(focusSong.dailyGoal || 100000);
     
-    // Atualizar divisão por artista
-    if (artists["Selena Gomez"]) {
-        document.getElementById('selenaDaily')?.textContent = this.formatNumber(artists["Selena Gomez"].dailyStreams);
-        document.getElementById('selenaTotal')?.textContent = this.formatNumber(artists["Selena Gomez"].totalStreams);
+    const needed = Math.max(0, (focusSong.dailyGoal || 100000) - focusSong.dailyStreams);
+    if (focusNeededElem) focusNeededElem.textContent = formatNumber(needed);
+    
+    // Atualizar link da playlist
+    const playlistLink = localStorage.getItem('spotifyPlaylist') || 'https://open.spotify.com/playlist/37i9dQZF1DX4PP3DA4J0N8';
+    const playlistBtn = document.getElementById('playlistBtn');
+    if (playlistBtn) {
+        playlistBtn.href = playlistLink;
     }
-    
-    if (artists["Selena Gomez & The Scene"]) {
-        document.getElementById('sceneDaily')?.textContent = this.formatNumber(artists["Selena Gomez & The Scene"].dailyStreams);
-        document.getElementById('sceneTotal')?.textContent = this.formatNumber(artists["Selena Gomez & The Scene"].totalStreams);
-    }
-    
-    // Atualizar sistema de metas
-    this.updateGoalSystem(dailyTotal, totalStreams);
-    
-    // Atualizar top álbuns
-    this.updateTopAlbums();
-    
-    // Atualizar foco do dia
-    this.updateFocusOfTheDay();
 }
 
-// Formatar números
+// Simular meta da música foco
+function simulateFocusGoal() {
+    const songs = MusicStorage.getSongs();
+    const votingResult = JSON.parse(localStorage.getItem('votingResult') || '{"winner": "A Year Without Rain", "votes": 1}');
+    const focusSong = songs.find(song => song.name === votingResult.winner);
+    
+    if (!focusSong) {
+        alert('Música foco não encontrada!');
+        return;
+    }
+    
+    const currentStreams = focusSong.dailyStreams;
+    const goal = focusSong.dailyGoal || 100000;
+    const needed = goal - currentStreams;
+    
+    if (needed <= 0) {
+        alert(`🎉 Meta já alcançada! ${focusSong.name} teve ${formatNumber(currentStreams)} streams hoje.`);
+        return;
+    }
+    
+    // Calcular tempo estimado baseado na média
+    const averagePerHour = Math.round(currentStreams / (new Date().getHours() + 1));
+    const hoursNeeded = Math.ceil(needed / averagePerHour);
+    
+    const simulation = `
+        📊 SIMULAÇÃO PARA ${focusSong.name.toUpperCase()}:
+        
+        • Streams atuais: ${formatNumber(currentStreams)}
+        • Meta diária: ${formatNumber(goal)}
+        • Faltam: ${formatNumber(needed)}
+        • Média por hora: ${formatNumber(averagePerHour)}
+        • Tempo estimado: ${hoursNeeded} horas
+        
+        🎯 Dica: Compartilhe com amigos para acelerar!
+    `;
+    
+    alert(simulation);
+    
+    // Adicionar pontos por usar simulação
+    const user = UserSystem.getCurrentUser();
+    if (user) {
+        UserSystem.addPoints(1, 'use_calculator');
+    }
+}
+
+// Atualizar ranking de usuários
+function updateUserRanking() {
+    const rankingBody = document.getElementById('rankingBody');
+    if (!rankingBody) return;
+    
+    const ranking = JSON.parse(localStorage.getItem('userRanking') || '[]');
+    
+    if (ranking.length === 0) {
+        rankingBody.innerHTML = `
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-users" style="font-size: 2rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                    <p>Nenhum usuário no ranking ainda. Faça login e complete missões!</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    rankingBody.innerHTML = ranking.map((user, index) => {
+        const positionClass = index < 3 ? `rank-${index + 1}` : '';
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+        
+        return `
+            <tr class="${positionClass}">
+                <td>${index + 1} ${medal}</td>
+                <td>${user.email.split('@')[0]}</td>
+                <td>${user.points} pts</td>
+                <td>${user.missionsCompleted || 0} missões</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Formatar número (redefinição para escopo local)
 function formatNumber(num) {
     if (num >= 1000000) {
         return (num / 1000000).toFixed(1) + 'M';
@@ -161,230 +172,4 @@ function formatNumber(num) {
         return (num / 1000).toFixed(1) + 'K';
     }
     return num.toString();
-}
-
-// Atualizar sistema de metas
-function updateGoalSystem(dailyTotal, totalStreams) {
-    const goalData = JSON.parse(localStorage.getItem('goalData') || '{"currentGoal": 200000000, "currentProgress": 198951352}');
-    
-    const currentLevel = GoalSystem.getCurrentLevel(dailyTotal);
-    const nextGoal = GoalSystem.calculateNextGoal(goalData.currentGoal, dailyTotal);
-    const progress = GoalSystem.getProgress(goalData.currentProgress, goalData.currentGoal);
-    
-    // Atualizar elementos na página inicial
-    const currentGoalElem = document.getElementById('currentGoal');
-    const currentLevelElem = document.getElementById('currentLevel');
-    const nextGoalElem = document.getElementById('nextGoal');
-    const currentTargetElem = document.getElementById('currentTarget');
-    const goalTargetElem = document.getElementById('goalTarget');
-    const goalProgressElem = document.getElementById('goalProgress');
-    
-    if (currentGoalElem) currentGoalElem.textContent = this.formatNumber(goalData.currentGoal);
-    if (currentLevelElem) currentLevelElem.textContent = currentLevel.name;
-    if (nextGoalElem) nextGoalElem.textContent = this.formatNumber(nextGoal);
-    if (currentTargetElem) currentTargetElem.textContent = this.formatNumber(goalData.currentProgress);
-    if (goalTargetElem) goalTargetElem.textContent = this.formatNumber(goalData.currentGoal);
-    if (goalProgressElem) {
-        goalProgressElem.style.width = `${progress}%`;
-        goalProgressElem.style.background = `linear-gradient(90deg, ${currentLevel.color}, ${currentLevel.color}DD)`;
-    }
-    
-    // Gerar cards de níveis
-    this.generateLevelCards(currentLevel);
-    
-    // Verificar se meta foi batida
-    if (goalData.currentProgress >= goalData.currentGoal) {
-        this.addRecentGoal(goalData.currentGoal);
-        goalData.currentGoal = nextGoal;
-        localStorage.setItem('goalData', JSON.stringify(goalData));
-    }
-}
-
-// Gerar cards de níveis
-function generateLevelCards(currentLevel) {
-    const levelsGrid = document.querySelector('.levels-grid');
-    if (!levelsGrid) return;
-    
-    levelsGrid.innerHTML = '';
-    
-    GoalSystem.levels.forEach((level, index) => {
-        const isActive = level.name === currentLevel.name;
-        const isCompleted = index > GoalSystem.levels.findIndex(l => l.name === currentLevel.name);
-        
-        const levelCard = document.createElement('div');
-        levelCard.className = `level-card ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`;
-        levelCard.style.borderColor = isActive ? level.color : 'transparent';
-        
-        levelCard.innerHTML = `
-            <h4 style="color: ${level.color}">${level.name}</h4>
-            <p>Mínimo: ${this.formatNumber(level.minDaily)}/dia</p>
-            <p>Incremento: +${this.formatNumber(level.increment)}</p>
-            ${isActive ? '<span class="pulse"><i class="fas fa-check-circle"></i> Ativo</span>' : ''}
-        `;
-        
-        levelsGrid.appendChild(levelCard);
-    });
-}
-
-// Adicionar meta recentemente batida
-function addRecentGoal(goalAmount) {
-    const recentGoals = JSON.parse(localStorage.getItem('recentGoals') || '[]');
-    const goalDate = new Date().toLocaleDateString('pt-BR');
-    
-    recentGoals.unshift({
-        amount: goalAmount,
-        date: goalDate,
-        formatted: this.formatNumber(goalAmount)
-    });
-    
-    if (recentGoals.length > 5) {
-        recentGoals.pop();
-    }
-    
-    localStorage.setItem('recentGoals', JSON.stringify(recentGoals));
-    this.updateRecentGoals();
-}
-
-// Atualizar metas recentes
-function updateRecentGoals() {
-    const recentGoalsContainer = document.getElementById('recentGoals');
-    if (!recentGoalsContainer) return;
-    
-    const recentGoals = JSON.parse(localStorage.getItem('recentGoals') || '[]');
-    
-    if (recentGoals.length === 0) {
-        recentGoalsContainer.innerHTML = `
-            <div class="empty-goals">
-                <i class="fas fa-flag-checkered"></i>
-                <p>Nenhuma meta batida recentemente. Continue streaming!</p>
-            </div>
-        `;
-        return;
-    }
-    
-    recentGoalsContainer.innerHTML = recentGoals.map(goal => `
-        <div class="goal-item fade-in">
-            <div class="goal-icon">
-                <i class="fas fa-trophy"></i>
-            </div>
-            <div class="goal-info">
-                <h4>Meta de ${goal.formatted} streams</h4>
-                <p>Batida em ${goal.date}</p>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Sistema de Usuários e Pontos
-class UserSystem {
-    static getCurrentUser() {
-        return JSON.parse(localStorage.getItem('currentUser'));
-    }
-    
-    static setCurrentUser(user) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
-    }
-    
-    static logout() {
-        localStorage.removeItem('currentUser');
-        window.location.reload();
-    }
-    
-    static addPoints(points, mission) {
-        const user = this.getCurrentUser();
-        if (!user) return;
-        
-        const today = new Date().toDateString();
-        
-        // Verificar se já completou a missão hoje
-        if (!user.dailyMissions) user.dailyMissions = {};
-        if (user.dailyMissions[mission] === today) {
-            return; // Já ganhou pontos por esta missão hoje
-        }
-        
-        user.points = (user.points || 0) + points;
-        user.dailyMissions[mission] = today;
-        
-        // Atualizar ranking
-        this.updateRanking(user.email, user.points);
-        
-        this.setCurrentUser(user);
-        this.saveUser(user);
-        
-        return user.points;
-    }
-    
-    static updateRanking(email, points) {
-        let ranking = JSON.parse(localStorage.getItem('userRanking') || '[]');
-        
-        const userIndex = ranking.findIndex(u => u.email === email);
-        
-        if (userIndex > -1) {
-            ranking[userIndex].points = points;
-            ranking[userIndex].lastUpdate = new Date().toISOString();
-        } else {
-            ranking.push({
-                email: email,
-                points: points,
-                lastUpdate: new Date().toISOString(),
-                missionsCompleted: Object.keys(this.getCurrentUser()?.dailyMissions || {}).length
-            });
-        }
-        
-        // Ordenar por pontos
-        ranking.sort((a, b) => b.points - a.points);
-        
-        // Manter apenas top 10
-        if (ranking.length > 10) {
-            ranking = ranking.slice(0, 10);
-        }
-        
-        localStorage.setItem('userRanking', JSON.stringify(ranking));
-    }
-    
-    static saveUser(user) {
-        let users = JSON.parse(localStorage.getItem('selenaUsers') || '[]');
-        const userIndex = users.findIndex(u => u.email === user.email);
-        
-        if (userIndex > -1) {
-            users[userIndex] = user;
-        } else {
-            users.push(user);
-        }
-        
-        localStorage.setItem('selenaUsers', JSON.stringify(users));
-    }
-    
-    static getUserByEmail(email) {
-        const users = JSON.parse(localStorage.getItem('selenaUsers') || '[]');
-        return users.find(u => u.email === email);
-    }
-}
-
-// Carregar dados do usuário
-function loadUserData() {
-    const user = UserSystem.getCurrentUser();
-    if (user) {
-        // Atualizar UI para usuário logado
-        const loginBtn = document.getElementById('loginBtn');
-        if (loginBtn) {
-            loginBtn.innerHTML = `<i class="fas fa-user"></i> ${user.email.split('@')[0]} (${user.points || 0} pts)`;
-            loginBtn.onclick = () => UserSystem.logout();
-        }
-    }
-}
-
-// Verificar status do login
-function checkLoginStatus() {
-    const user = UserSystem.getCurrentUser();
-    if (!user) return;
-    
-    // Verificar missão de login diário
-    const lastLogin = localStorage.getItem('lastDailyLogin');
-    const today = new Date().toDateString();
-    
-    if (lastLogin !== today) {
-        UserSystem.addPoints(1, 'daily_login');
-        localStorage.setItem('lastDailyLogin', today);
-    }
 }
